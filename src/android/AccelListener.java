@@ -75,6 +75,7 @@ public class AccelListener extends CordovaPlugin implements SensorEventListener 
         this.z = 0;
         this.timestamp = 0;
         this.setStatus(AccelListener.STOPPED);
+        
      }
 
     /**
@@ -98,19 +99,32 @@ public class AccelListener extends CordovaPlugin implements SensorEventListener 
      * @param callbackId    The callback id used when calling back into JavaScript.
      * @return              Whether the action was valid.
      */
-    public boolean execute(String action, JSONArray args, CallbackContext callbackContext) {
+    public boolean execute(String action, JSONArray args, final CallbackContext callbackContext) {
+
+        final AccelListener that = this;
+
         if (action.equals("start")) {
-            this.callbackContext = callbackContext;
-            if (this.status != AccelListener.RUNNING) {
-                // If not running, then this is an async call, so don't worry about waiting
-                // We drop the callback onto our stack, call start, and let start and the sensor callback fire off the callback down the road
-                this.start();
-            }
+            cordova.getThreadPool().execute(new Runnable(){
+                public void run(){
+                    that.callbackContext = callbackContext;
+                    if (that.status != AccelListener.RUNNING) {
+                        // If not running, then this is an async call, so don't worry about waiting
+                        // We drop the callback onto our stack, call start, and let start and the sensor callback fire off the callback down the road
+                        that.start();
+                    }
+                }
+            });
+
         }
         else if (action.equals("stop")) {
-            if (this.status == AccelListener.RUNNING) {
-                this.stop();
-            }
+            cordova.getThreadPool().execute(new Runnable(){
+                public void run(){
+                    if (that.status == AccelListener.RUNNING) {
+                        that.stop();
+                    }
+                }
+            });
+
         } else {
           // Unsupported action
             return false;
